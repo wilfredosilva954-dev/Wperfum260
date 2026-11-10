@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>W PERFUME | Perfumería</title>
+<style>
+:root{--black:#090909;--panel:#151515;--gold:#d4af37;--gold2:#f0d77a;--muted:#aaa;--white:#f7f4ec}
+*{box-sizing:border-box}body{margin:0;background:var(--black);color:var(--white);font:15px/1.5 Arial,sans-serif}
+header{position:sticky;top:0;z-index:5;background:#080808ed;border-bottom:1px solid #574719;padding:14px 5%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{font-size:25px;font-weight:900;letter-spacing:3px;color:var(--gold)}nav{display:flex;gap:14px;flex-wrap:wrap}a{color:var(--gold2);text-decoration:none}button,.btn{border:1px solid var(--gold);background:var(--gold);color:#111;padding:10px 14px;border-radius:7px;font-weight:bold;cursor:pointer}button.secondary,.btn.secondary{background:transparent;color:var(--gold)}button:disabled{opacity:.4;cursor:not-allowed}
+.hero{text-align:center;padding:58px 18px 44px;background:radial-gradient(ellipse at top,#33280c 0%,#090909 65%)}.hero h1{font-size:clamp(34px,7vw,62px);letter-spacing:5px;margin:0;color:var(--gold)}.hero p{color:#ddd}.wrap{max-width:1250px;margin:auto;padding:25px 5%}
+.tools{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.tools input,.tools select,input,textarea,select{background:#202020;border:1px solid #51451f;color:white;padding:11px;border-radius:6px;min-width:0}
+.tools input{flex:1;min-width:180px}.categories{display:flex;gap:8px;overflow:auto;padding:8px 0 18px}.categories button{white-space:nowrap}.categories button.active{background:transparent;color:var(--gold)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:17px}.card{background:var(--panel);border:1px solid #38301a;border-radius:10px;overflow:hidden;display:flex;flex-direction:column}.photo{height:220px;background:#222;display:flex;align-items:center;justify-content:center;overflow:hidden}.photo img{width:100%;height:100%;object-fit:contain}.info{padding:13px;display:flex;flex-direction:column;gap:7px;flex:1}.tag{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:1px}.price{font-size:19px;color:var(--gold2);font-weight:bold}.stock{font-size:12px;color:#bbb}.sold{color:#ff8585;font-weight:bold}.card button{width:100%;margin-top:5px}.empty{color:#aaa;text-align:center;padding:35px}
+footer{text-align:center;border-top:1px solid #493b18;padding:25px;color:#aaa;margin-top:35px}
+dialog{background:#151515;color:white;border:1px solid var(--gold);border-radius:12px;width:min(720px,94vw);max-height:90vh;overflow:auto}dialog::backdrop{background:#000c}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.formgrid label{display:flex;flex-direction:column;gap:5px;color:#ddd}.formgrid .wide{grid-column:1/-1}.formgrid input,.formgrid select,.formgrid textarea{width:100%}.adminlist{border-top:1px solid #444;margin-top:18px}.adminrow{display:flex;justify-content:space-between;gap:10px;align-items:center;border-bottom:1px solid #333;padding:9px 0}.adminrow small{color:#aaa}.cartline{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #333}
+@media(max-width:600px){.formgrid{grid-template-columns:1fr}.formgrid .wide{grid-column:auto}header{justify-content:center}.photo{height:190px}}
+</style>
+</head>
+<body>
+<header><div class="logo">W PERFUME</div><nav><a href="#catalogo">Catálogo</a><a href="#categorias">Categorías</a><a href="#contacto">Contacto</a></nav><div><button class="secondary" onclick="openCart()">Carrito (<span id="cartCount">0</span>)</button> <button onclick="adminLogin()">Administrar</button></div></header>
+<section class="hero"><h1>W PERFUME</h1><p>Tu esencia, tu estilo. Encuentra tu próxima fragancia.</p><a class="btn" href="#catalogo">Ver catálogo</a></section>
+<main class="wrap" id="catalogo">
+<h2>Catálogo de productos</h2><div class="tools"><input id="search" placeholder="Buscar perfume, set, crema..." oninput="renderProducts()"><select id="sort" onchange="renderProducts()"><option value="featured">Destacados</option><option value="priceUp">Precio: menor a mayor</option><option value="priceDown">Precio: mayor a menor</option></select></div>
+<div class="categories" id="categories"></div><div class="grid" id="products"></div>
+</main>
+<section class="wrap" id="contacto"><h2>¿Necesitas ayuda?</h2><p>Consulta disponibilidad, precios y recomendaciones directamente por WhatsApp.</p><a class="btn" id="contactLink" target="_blank" rel="noopener">Escribir por WhatsApp</a></section>
+<footer>© <span id="year"></span> W PERFUME · Perfumería</footer>
+
+<dialog id="adminDialog"><h2>Administración de inventario</h2><p style="color:#aaa">Agrega productos, imágenes, precios y existencias. Existencia 0 = AGOTADO.</p>
+<form id="productForm" class="formgrid">
+<label>Nombre del producto<input name="name" required maxlength="100"></label>
+<label>Categoría<select name="category" id="categorySelect"></select></label>
+<label>Precio (USD)<input name="price" type="number" min="0" step=".01" required></label>
+<label>Existencia<input name="stock" type="number" min="0" step="1" value="1" required></label>
+<label>Oferta<input name="offer" type="checkbox" style="width:auto;align-self:flex-start"></label>
+<label>Imágenes (puedes seleccionar muchas)<input name="images" type="file" accept="image/*" multiple></label>
+<label class="wide">Descripción<textarea name="description" rows="2"></textarea></label>
+<div class="wide"><button type="submit">Guardar producto</button> <button type="button" class="secondary" onclick="closeAdmin()">Cerrar</button></div>
+</form><div class="adminlist" id="adminList"></div></dialog>
+
+<dialog id="cartDialog"><h2>Tu carrito</h2><div id="cartItems"></div><p id="cartTotal" class="price"></p><button onclick="checkout()">Pedir por WhatsApp</button> <button class="secondary" onclick="document.getElementById('cartDialog').close()">Seguir comprando</button></dialog>
+<script>
+const WHATSAPP = "584121595176"; // Número internacional sin + ni espacios
+const ADMIN_PIN = "1234"; // DEMO: cambia esto; no es seguridad real sin servidor
+const CATS = ["Referencia de caballero","Referencia de dama","Referencia unisex","Sets completos de dama","Sets completos de caballero","Cremas","Mystery box","Rifas","Ofertas"];
+let db, products=[], cart={}, activeCategory="Todos";
+const money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(n)||0);
+const wa=(msg)=>"https://wa.me/"+WHATSAPP+"?text="+encodeURIComponent(msg);
+document.getElementById("contactLink").href=wa("Hola W PERFUME, quisiera información sobre sus productos.");
+document.getElementById("year").textContent=new Date().getFullYear();
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open("WPerfumeDB",1);req.onupgradeneeded=()=>{const d=req.result;d.createObjectStore("products",{keyPath:"id"});d.createObjectStore("images",{keyPath:"id"});};req.onsuccess=()=>{db=req.result;resolve()};req.onerror=()=>reject(req.error)})}
+function store(name,mode="readonly"){return db.transaction(name,mode).objectStore(name)}
+function all(storeName){return new Promise((res,rej)=>{let r=store(storeName).getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function save(storeName,value){return new Promise((res,rej)=>{let r=store(storeName,"readwrite").put(value);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+function remove(storeName,id){return new Promise((res,rej)=>{let r=store(storeName,"readwrite").delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+async function load(){await openDB();products=await all("products");renderCategories();renderProducts()}
+function renderCategories(){let box=document.getElementById("categories");box.innerHTML="";["Todos",...CATS].forEach(c=>{let b=document.createElement("button");b.className="secondary"+(activeCategory===c?" active":"");b.textContent=c;b.onclick=()=>{activeCategory=c;renderCategories();renderProducts()};box.append(b)});document.getElementById("categorySelect").innerHTML=CATS.map(c=>`<option>${c}</option>`).join("")}
+async function renderProducts(){let list=products.filter(p=>(activeCategory==="Todos"||p.category===activeCategory||activeCategory==="Ofertas"&&p.offer)&&((p.name+" "+p.category+" "+(p.description||"")).toLowerCase().includes(document.getElementById("search").value.toLowerCase())));let sort=document.getElementById("sort").value;if(sort==="priceUp")list.sort((a,b)=>a.price-b.price);if(sort==="priceDown")list.sort((a,b)=>b.price-a.price);
+let root=document.getElementById("products");root.innerHTML="";if(!list.length){root.innerHTML='<div class="empty">No hay productos para mostrar todavía.</div>';return}
+for(const p of list){let img=await getFirstImage(p.id);let card=document.createElement("article");card.className="card";let photo=document.createElement("div");photo.className="photo";if(img){let im=document.createElement("img");im.src=URL.createObjectURL(img);im.alt=p.name;photo.append(im)}else photo.textContent="W PERFUME";let info=document.createElement("div");info.className="info";info.innerHTML=`<span class="tag">${escapeHtml(p.category)} ${p.offer? " · OFERTA":""}</span><strong>${escapeHtml(p.name)}</strong><span class="price">${money(p.price)}</span><span class="stock ${p.stock===0?"sold":""}">${p.stock===0?"AGOTADO":"Existencia: "+p.stock}</span><small>${escapeHtml(p.description||"")}</small>`;let btn=document.createElement("button");btn.textContent=p.stock===0?"Consultar por WhatsApp":"Agregar al carrito";btn.disabled=p.stock===0;btn.onclick=()=>addCart(p.id);info.append(btn);let ask=document.createElement("a");ask.href=wa("Hola W PERFUME, quisiera consultar por: "+p.name);ask.target="_blank";ask.rel="noopener";ask.textContent="Consultar por WhatsApp";info.append(ask);card.append(photo,info);root.append(card)}}
+function getFirstImage(pid){return new Promise(res=>{let r=store("images").getAll();r.onsuccess=()=>res(r.result.find(x=>x.productId===pid)?.blob||null);r.onerror=()=>res(null)})}
+function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function addCart(id){let p=products.find(x=>x.id===id);if(!p||p.stock<=0)return;let count=cart[id]||0;if(count>=p.stock){alert("No puedes agregar más unidades que la existencia.");return}cart[id]=count+1;document.getElementById("cartCount").textContent=Object.values(cart).reduce((a,b)=>a+b,0)}
+function openCart(){let root=document.getElementById("cartItems"),total=0;root.innerHTML="";for(let [id,q] of Object.entries(cart)){let p=products.find(x=>x.id===id);if(!p)continue;total+=p.price*q;let row=document.createElement("div");row.className="cartline";row.innerHTML=`<span>${escapeHtml(p.name)} × ${q}</span><strong>${money(p.price*q)}</strong>`;root.append(row)}document.getElementById("cartTotal").textContent="Total: "+money(total);document.getElementById("cartDialog").showModal()}
+function checkout(){let lines=["Hola W PERFUME, quiero realizar este pedido:"];let total=0;for(let [id,q] of Object.entries(cart)){let p=products.find(x=>x.id===id);if(p){lines.push(`${p.name} x${q} - ${money(p.price*q)}`);total+=p.price*q}}if(!total){alert("Tu carrito está vacío.");return}lines.push("Total referencial: "+money(total),"Por favor, confirmen disponibilidad y entrega.");location.href=wa(lines.join("\n"))}
+function adminLogin(){let pin=prompt("Introduce el PIN de administración:");if(pin===ADMIN_PIN){renderAdmin();document.getElementById("adminDialog").showModal()}else if(pin!==null)alert("PIN incorrecto.")}
+function closeAdmin(){document.getElementById("adminDialog").close()}
+document.getElementById("productForm").addEventListener("submit",async e=>{e.preventDefault();let f=e.currentTarget,fd=new FormData(f),id=crypto.randomUUID();let p={id,name:fd.get("name").trim(),category:fd.get("category"),price:Number(fd.get("price")),stock:Math.max(0,parseInt(fd.get("stock"),10)||0),offer:f.elements.offer.checked,description:fd.get("description")};await save("products",p);for(const file of f.elements.images.files){if(!file.type.startsWith("image/"))continue;await save("images",{id:crypto.randomUUID(),productId:id,blob:file,name:file.name})}products=await all("products");f.reset();f.elements.stock.value=1;renderCategories();renderProducts();renderAdmin();alert("Producto guardado.")});
+async function renderAdmin(){let root=document.getElementById("adminList");root.innerHTML="<h3>Productos registrados</h3>";for(const p of products){let row=document.createElement("div");row.className="adminrow";let left=document.createElement("div");left.innerHTML=`<strong>${escapeHtml(p.name)}</strong><br><small>${escapeHtml(p.category)} · ${p.stock===0?"AGOTADO":"Existencia: "+p.stock} · ${money(p.price)}</small>`;let actions=document.createElement("div");let stock=document.createElement("input");stock.type="number";stock.min="0";stock.value=p.stock;stock.style.width="75px";let update=document.createElement("button");update.textContent="Actualizar";update.onclick=async()=>{p.stock=Math.max(0,parseInt(stock.value,10)||0);await save("products",p);products=await all("products");renderProducts();renderAdmin()};let del=document.createElement("button");del.textContent="Eliminar";del.className="secondary";del.onclick=async()=>{if(confirm("¿Eliminar "+p.name+"?")){await remove("products",p.id);let imgs=await all("images");for(let im of imgs)if(im.productId===p.id)await remove("images",im.id);products=await all("products");renderProducts();renderAdmin()}};actions.append(stock,update,del);row.append(left,actions);root.append(row)}}
+load().catch(e=>{console.error(e);alert("No se pudo iniciar la base de datos local del catálogo.")});
+</script>
+</body></html>
