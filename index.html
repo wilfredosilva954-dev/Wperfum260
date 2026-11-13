@@ -76,7 +76,7 @@ function loadRemoteProducts() {
         price: Number(p.precio) || 0,
         stock: Number(p.existencia) || 0,
         description: p.descripcion || "",
-        imageUrl: p.fotografia ? p.fotografia.replace(/\/file\/d\/([^/]+)\/view.*/, "https://drive.google.com/thumbnail?id=$1&sz=w1000") : "",
+        imageUrl: p.fotografia ? (p.fotografia.match(/[-\w]{25,}/) ? "https://drive.google.com/thumbnail?id=" + p.fotografia.match(/[-\w]{25,}/)[0] + "&sz=w1000" : p.fotografia) : "",
         offer: String(p.estado).toLowerCase().includes("oferta")
       })));
     };
