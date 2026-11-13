@@ -46,6 +46,51 @@ const WHATSAPP = "584121595176"; // Número internacional sin + ni espacios
 const ADMIN_PIN = "1234"; // DEMO: cambia esto; no es seguridad real sin servidor
 const CATS = ["Referencia de caballero","Referencia de dama","Referencia unisex","Sets completos de dama","Sets completos de caballero","Cremas","Mystery box","Rifas","Ofertas"];
 let db, products=[], cart={}, activeCategory="Todos";
+const API_URL = "https://script.google.com/macros/s/AKfycbzZoiUias0j89OP93CeVjamB_MPiT3X1R-sPs2fdsYgTwj7DdlAT5889bdQUiPbR4GR/exec";
+
+function loadRemoteProducts() {
+  return new Promise((resolve, reject) => {
+    const callback = "wPerfumeCallback";
+    const script = document.createElement("script");
+
+    const timer = setTimeout(() => {
+      delete window[callback];
+      script.remove();
+      reject(new Error("Tiempo agotado"));
+    }, 15000);
+
+    window[callback] = data => {
+      clearTimeout(timer);
+      delete window[callback];
+      script.remove();
+
+      if (!data || !data.success) {
+        reject(new Error("Error de inventario"));
+        return;
+      }
+
+      resolve(data.products.map((p, i) => ({
+        id: p.codigo || "producto-" + i,
+        name: p.producto,
+        category: p.categoria === "Caballero" ? "Referencia de caballero" : p.categoria,
+        price: Number(p.precio) || 0,
+        stock: Number(p.existencia) || 0,
+        description: p.descripcion || "",
+        imageUrl: p.fotografia ? p.fotografia.replace(/\/file\/d\/([^/]+)\/view.*/, "https://drive.google.com/thumbnail?id=$1&sz=w1000") : "",
+        offer: String(p.estado).toLowerCase().includes("oferta")
+      })));
+    };
+
+    script.onerror = () => {
+      clearTimeout(timer);
+      delete window[callback];
+      reject(new Error("No se pudo conectar"));
+    };
+
+    script.src = API_URL + "?callback=" + callback;
+    document.head.appendChild(script);
+  });
+} 
 const money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(n)||0);
 const wa=(msg)=>"https://wa.me/"+WHATSAPP+"?text="+encodeURIComponent(msg);
 document.getElementById("contactLink").href=wa("Hola W PERFUME, quisiera información sobre sus productos.");
@@ -55,11 +100,20 @@ function store(name,mode="readonly"){return db.transaction(name,mode).objectStor
 function all(storeName){return new Promise((res,rej)=>{let r=store(storeName).getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 function save(storeName,value){return new Promise((res,rej)=>{let r=store(storeName,"readwrite").put(value);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
 function remove(storeName,id){return new Promise((res,rej)=>{let r=store(storeName,"readwrite").delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
-async function load(){await openDB();products=await all("products");renderCategories();renderProducts()}
+async function load(){
+  try {
+    products = await loadRemoteProducts();
+    renderCategories();
+    renderProducts();
+  } catch(error) {
+    console.error(error);
+    alert("No se pudo cargar el inventario. Intenta nuevamente.");
+  }
+}
 function renderCategories(){let box=document.getElementById("categories");box.innerHTML="";["Todos",...CATS].forEach(c=>{let b=document.createElement("button");b.className="secondary"+(activeCategory===c?" active":"");b.textContent=c;b.onclick=()=>{activeCategory=c;renderCategories();renderProducts()};box.append(b)});document.getElementById("categorySelect").innerHTML=CATS.map(c=>`<option>${c}</option>`).join("")}
 async function renderProducts(){let list=products.filter(p=>(activeCategory==="Todos"||p.category===activeCategory||activeCategory==="Ofertas"&&p.offer)&&((p.name+" "+p.category+" "+(p.description||"")).toLowerCase().includes(document.getElementById("search").value.toLowerCase())));let sort=document.getElementById("sort").value;if(sort==="priceUp")list.sort((a,b)=>a.price-b.price);if(sort==="priceDown")list.sort((a,b)=>b.price-a.price);
 let root=document.getElementById("products");root.innerHTML="";if(!list.length){root.innerHTML='<div class="empty">No hay productos para mostrar todavía.</div>';return}
-for(const p of list){let img=await getFirstImage(p.id);let card=document.createElement("article");card.className="card";let photo=document.createElement("div");photo.className="photo";if(img){let im=document.createElement("img");im.src=URL.createObjectURL(img);im.alt=p.name;photo.append(im)}else photo.textContent="W PERFUME";let info=document.createElement("div");info.className="info";info.innerHTML=`<span class="tag">${escapeHtml(p.category)} ${p.offer? " · OFERTA":""}</span><strong>${escapeHtml(p.name)}</strong><span class="price">${money(p.price)}</span><span class="stock ${p.stock===0?"sold":""}">${p.stock===0?"AGOTADO":"Existencia: "+p.stock}</span><small>${escapeHtml(p.description||"")}</small>`;let btn=document.createElement("button");btn.textContent=p.stock===0?"Consultar por WhatsApp":"Agregar al carrito";btn.disabled=p.stock===0;btn.onclick=()=>addCart(p.id);info.append(btn);let ask=document.createElement("a");ask.href=wa("Hola W PERFUME, quisiera consultar por: "+p.name);ask.target="_blank";ask.rel="noopener";ask.textContent="Consultar por WhatsApp";info.append(ask);card.append(photo,info);root.append(card)}}
+for(const p of list){let img=p.imageUrl;let card=document.createElement("article");card.className="card";let photo=document.createElement("div");photo.className="photo";if(img){let im=document.createElement("img");im.src=img;im.alt=p.name;photo.append(im)}else photo.textContent="W PERFUME";let info=document.createElement("div");info.className="info";info.innerHTML=`<span class="tag">${escapeHtml(p.category)} ${p.offer? " · OFERTA":""}</span><strong>${escapeHtml(p.name)}</strong><span class="price">${money(p.price)}</span><span class="stock ${p.stock===0?"sold":""}">${p.stock===0?"AGOTADO":"Existencia: "+p.stock}</span><small>${escapeHtml(p.description||"")}</small>`;let btn=document.createElement("button");btn.textContent=p.stock===0?"Consultar por WhatsApp":"Agregar al carrito";btn.disabled=p.stock===0;btn.onclick=()=>addCart(p.id);info.append(btn);let ask=document.createElement("a");ask.href=wa("Hola W PERFUME, quisiera consultar por: "+p.name);ask.target="_blank";ask.rel="noopener";ask.textContent="Consultar por WhatsApp";info.append(ask);card.append(photo,info);root.append(card)}}
 function getFirstImage(pid){return new Promise(res=>{let r=store("images").getAll();r.onsuccess=()=>res(r.result.find(x=>x.productId===pid)?.blob||null);r.onerror=()=>res(null)})}
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function addCart(id){let p=products.find(x=>x.id===id);if(!p||p.stock<=0)return;let count=cart[id]||0;if(count>=p.stock){alert("No puedes agregar más unidades que la existencia.");return}cart[id]=count+1;document.getElementById("cartCount").textContent=Object.values(cart).reduce((a,b)=>a+b,0)}
