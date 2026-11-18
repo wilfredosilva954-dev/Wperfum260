@@ -416,20 +416,35 @@ let shareBtn=document.createElement("button");
 shareBtn.type="button";
 shareBtn.className="secondary";
 shareBtn.textContent="📤 Compartir foto";
-shareBtn.onclick=()=>shareProduct(p);
+shareBtn.onclick=async()=>{
+  if(!window.archivoWPerfume){
+    const texto="✨ W PERFUME ✨\n"+p.name+"\nPrecio: "+money(p.price);
+    await shareProduct(p,texto);
+    return;
+  }
+
+  try{
+    await navigator.share({
+      files:[window.archivoWPerfume],
+      title:"W PERFUME",
+      text:window.textoWPerfume
+    });
+  }catch(error){
+    if(error.name!=="AbortError"){
+      alert("Error al compartir: "+error.message);
+    }
+  }
+};
 info.append(shareBtn);let ask=document.createElement("a");ask.href=wa("Hola W PERFUME, quisiera consultar por: "+p.name);ask.target="_blank";ask.rel="noopener";ask.textContent="Consultar por WhatsApp";info.append(ask);card.append(photo,info);root.append(card)}}
 function getFirstImage(pid){return new Promise(res=>{let r=store("images").getAll();r.onsuccess=()=>res(r.result.find(x=>x.productId===pid)?.blob||null);r.onerror=()=>res(null)})}
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-async function shareProduct(p){
+async function shareProduct(p, texto){
   try{
     const match = (p.imageUrl || "").match(/[?&]id=([^&]+)/);
     if(!match) throw new Error("No se encontró la foto");
 
     const fileId = decodeURIComponent(match[1]);
     const callback = "fotoWPerfume" + Date.now();
-
-    const url = API_URL + "?foto=" + encodeURIComponent(fileId) +
-      "&callback=" + callback;
 
     const imagen = await new Promise((resolve,reject)=>{
       const script = document.createElement("script");
@@ -440,7 +455,8 @@ async function shareProduct(p){
         else reject(new Error(data.error || "No se pudo obtener la foto"));
       };
       script.onerror = () => reject(new Error("Error al conectar con Drive"));
-      script.src = url;
+      script.src = API_URL + "?foto=" + encodeURIComponent(fileId) +
+        "&callback=" + callback;
       document.body.appendChild(script);
     });
 
@@ -450,19 +466,11 @@ async function shareProduct(p){
       type: blob.type
     });
 
-    if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({
-        files:[file],
-        title:"W PERFUME",
-        text:"✨ W PERFUME ✨\n" + p.name + "\nPrecio: " + money(p.price)
-      });
-    }else{
-      alert("Tu teléfono no permite compartir archivos desde esta página.");
-    }
+    window.archivoWPerfume = file;
+    window.textoWPerfume = texto;
+    alert("Fotografía preparada. Pulsa nuevamente Compartir foto.");
   }catch(error){
-    if(error.name !== "AbortError"){
-      alert("No se pudo compartir la foto: " + error.message);
-    }
+    alert("No se pudo preparar la foto: " + error.message);
   }
 }
 function addCart(id){let p=products.find(x=>x.id===id);if(!p||p.stock<=0)return;let count=cart[id]||0;if(count>=p.stock){alert("No puedes agregar más unidades que la existencia.");return}cart[id]=count+1;document.getElementById("cartCount").textContent=Object.values(cart).reduce((a,b)=>a+b,0)}
