@@ -420,6 +420,31 @@ shareBtn.onclick=()=>shareProduct(p);
 info.append(shareBtn);let ask=document.createElement("a");ask.href=wa("Hola W PERFUME, quisiera consultar por: "+p.name);ask.target="_blank";ask.rel="noopener";ask.textContent="Consultar por WhatsApp";info.append(ask);card.append(photo,info);root.append(card)}}
 function getFirstImage(pid){return new Promise(res=>{let r=store("images").getAll();r.onsuccess=()=>res(r.result.find(x=>x.productId===pid)?.blob||null);r.onerror=()=>res(null)})}
 function escapeHtml(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function shareProduct(p){
+  const text="✨ W PERFUME ✨\n"+p.name+"\nPrecio: "+money(p.price)+"\n"+p.category;
+  try{
+    if(p.imageUrl){
+      const response=await fetch(p.imageUrl);
+      if(!response.ok) throw new Error("Imagen no disponible");
+      const blob=await response.blob();
+      const file=new File([blob],"W-PERFUME.jpg",{type:blob.type||"image/jpeg"});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:"W PERFUME",text});
+        return;
+      }
+    }
+    if(navigator.share){
+      await navigator.share({title:"W PERFUME",text,url:p.imageUrl||location.href});
+    }else{
+      alert("Tu navegador no permite compartir directamente. Copia el enlace del catálogo: "+location.href);
+    }
+  }catch(error){
+    if(error.name!=="AbortError"){
+      alert("No se pudo compartir la foto. Intenta desde el menú de compartir del teléfono.");
+    }
+  }
+}
+
 function addCart(id){let p=products.find(x=>x.id===id);if(!p||p.stock<=0)return;let count=cart[id]||0;if(count>=p.stock){alert("No puedes agregar más unidades que la existencia.");return}cart[id]=count+1;document.getElementById("cartCount").textContent=Object.values(cart).reduce((a,b)=>a+b,0)}
 function openCart(){let root=document.getElementById("cartItems"),total=0;root.innerHTML="";for(let [id,q] of Object.entries(cart)){let p=products.find(x=>x.id===id);if(!p)continue;total+=p.price*q;let row=document.createElement("div");row.className="cartline";row.innerHTML=`<span>${escapeHtml(p.name)} × ${q}</span><strong>${money(p.price*q)}</strong>`;root.append(row)}document.getElementById("cartTotal").textContent="Total: "+money(total);document.getElementById("cartDialog").showModal()}
 function checkout(){let lines=["Hola W PERFUME, quiero realizar este pedido:"];let total=0;for(let [id,q] of Object.entries(cart)){let p=products.find(x=>x.id===id);if(p){lines.push(`${p.name} x${q} - ${money(p.price*q)}`);total+=p.price*q}}if(!total){alert("Tu carrito está vacío.");return}lines.push("Total referencial: "+money(total),"Por favor, confirmen disponibilidad y entrega.");location.href=wa(lines.join("\n"))}
